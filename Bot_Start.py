@@ -20,26 +20,28 @@ print(f'Telegram bot with token {bot_token} started')
 
 @bot.message_handler(commands=['info'])
 def info(message):
-    if message.reply_to_message is None:
-        bot.reply_to(message, "Пожалуйста, ответьте на сообщение пользователя, чтобы получить о нем информацию.")
-        return
+    if message.from_user.id in moderators:
+        if message.reply_to_message is None:
+            bot.reply_to(message, "Пожалуйста, ответьте на сообщение пользователя, чтобы получить о нем информацию.")
+            return
 
-    try:
-        user = message.reply_to_message.from_user
-        user_id = user.id
-        user_nickname = user.username
+        try:
+            user = message.reply_to_message.from_user
+            user_id = user.id
+            user_nickname = user.username
 
-        chat_id = message.chat.id
-        chat_member = bot.get_chat_member(chat_id, user_id)
+            chat_id = message.chat.id
+            chat_member = bot.get_chat_member(chat_id, user_id)
 
-        admin = 'да' if chat_member.status in ['administrator', 'creator'] else 'нет'
+            admin = 'да' if chat_member.status in ['administrator', 'creator'] else 'нет'
 
-        bot.reply_to(message, f'Информация о {user_nickname}:\n\nID: {user_id}\nАдминистратор: {admin}')
+            bot.reply_to(message, f'Информация о {user_nickname}:\n\nID: {user_id}\nАдминистратор: {admin}')
 
-    except Exception as e:
-        print(f"Ошибка: {e}")
-        bot.reply_to(message, "Произошла ошибка при получении информации о пользователе.")
-
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            bot.reply_to(message, "Произошла ошибка при получении информации о пользователе.")
+    else:
+        bot.reply_to(message, 'У вас не достаточно прав для использования.')
 @bot.message_handler(commands=['weather'])
 def weather(message):
     try:
