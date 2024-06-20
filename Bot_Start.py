@@ -18,6 +18,28 @@ moderators = [5025429154]
 
 print(f'Telegram bot with token {bot_token} started')
 
+@bot.message_handler(commands=['info'])
+def info(message):
+    if message.reply_to_message is None:
+        bot.reply_to(message, "Пожалуйста, ответьте на сообщение пользователя, чтобы получить о нем информацию.")
+        return
+
+    try:
+        user = message.reply_to_message.from_user
+        user_id = user.id
+        user_nickname = user.username
+
+        chat_id = message.chat.id
+        chat_member = bot.get_chat_member(chat_id, user_id)
+
+        admin = 'да' if chat_member.status in ['administrator', 'creator'] else 'нет'
+
+        bot.reply_to(message, f'Информация о {user_nickname}:\n\nID: {user_id}\nАдминистратор: {admin}')
+
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        bot.reply_to(message, "Произошла ошибка при получении информации о пользователе.")
+
 @bot.message_handler(commands=['weather'])
 def weather(message):
     try:
@@ -51,7 +73,7 @@ def weather(message):
     if response.status_code == 200:
         try:
             url_png = f"https://tile.openweathermap.org/map/temp_new/0/0/0.png?appid={API_Weather}"
-            message_text = f"**Погода в {city}**\n\nГород: {city}, Страна: {filtered_data['Country']}\nСредняя температура: {filtered_data['Temp']}°C \nМинимальная температура: {filtered_data['Temp_min']}°C \nМаксимальная температура: {filtered_data['Temp_max']}°C \nТемпература по ощущениям: {filtered_data['Feels_like']}°C \nСкорость ветра: {filtered_data['Wind_speed']}М/С \nВлажность: {filtered_data['Humidity']}% \nЗапрос выполнен: {time} \nЗапросил: {message.from_user.username} \nИсточник: https://openweathermap.org/city/{filtered_data['City_id']}"
+            message_text = f"**Погода в {city}**\n\nГород: {city}, Страна: {filtered_data['Country']}\nСредняя температура: {filtered_data['Temp']}°C \nМинимальная температура: {filtered_data['Temp_min']}°C \nМаксимальная температура: {filtered_data['Temp_max']}°C \nТемпература по ощущениям: {filtered_data['Feels_like']}°C \nСкорость ветра: {filtered_data['Wind_speed']}М/С \nВлажность: {filtered_data['Humidity']}% \nЗапрос выполнен: {time} \nЗапросил: {message.from_user.username} ({message.from_user.id}) \nИсточник: https://openweathermap.org/city/{filtered_data['City_id']}"
             bot.send_photo(chat_id, photo=url_png)
             bot.reply_to(message, message_text)
         except requests.exceptions.HTTPError:
@@ -90,6 +112,8 @@ def ban_user(message):
                         bot.reply_to(message, 'Данный метод может использоваться только каналах и супергруппах!')
                     elif f"invalid literal for int() with base 10: '{ban_time}'" in str(e):
                         bot.reply_to(message, 'Не правильное использование команды. Используйте: /mute [время] [причина]')
+                    elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: not enough rights to restrict/unrestrict chat member" in str(e):
+                        bot.reply_to(message, 'Ошибка. Для корректной работы бота выдайте ему права администратора.')
                     else:
                         bot.reply_to(message, f'Произошла ошибка. Ошибка: {e}')
             else:
@@ -105,6 +129,8 @@ def ban_user(message):
                         bot.reply_to(message, 'Данный метод может использоваться только каналах и супергруппах!')
                     elif f"invalid literal for int() with base 10: '{ban_time}'" in str(e):
                         bot.reply_to(message, 'Не правильное использование команды. Используйте: /ban [время] [причина]')
+                    elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: not enough rights to restrict/unrestrict chat member" in str(e):
+                        bot.reply_to(message, 'Ошибка. Для корректной работы бота выдайте ему права администратора.')
                     else:
                         bot.reply_to(message, f'Произошла ошибка. Ошибка: {e}')
         else:
@@ -130,13 +156,16 @@ def unban_user(message):
                 return
 
             try:
-                bot.unban_chat_member(chat_id, user_id,)
-                bot.reply_to(f'Участник {message.reply_to_message.from_user.first_name} был разблокирован. Причина: {reason}')
+                bot.unban_chat_member(chat_id, user_id)
+                bot.reply_to(message, f'Участник {message.reply_to_message.from_user.first_name} был разблокирован. Причина: {reason}')
             except Exception as e:
                 if 'User is not banned' in str(e):
                     bot.reply_to(message, 'Пользватель не заблокирован')
                 elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: method is available for supergroup and channel chats only" in str(e):
                     bot.reply_to(message, 'Данный метод может использоваться только каналах и супергруппах!')
+                elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: not enough rights to restrict/unrestrict chat member" in str(
+                        e):
+                    bot.reply_to(message, 'Ошибка. Для корректной работы бота выдайте ему права администратора.')
                 else:
                     bot.reply_to(message, f'Произошла ошибка. Ошибка: {e}')
         else:
@@ -173,6 +202,8 @@ def mute_user(message):
                         bot.reply_to(message, 'Данный метод может использоваться только в супергруппах!')
                     elif f"invalid literal for int() with base 10: '{mute_time}'" in str(e):
                         bot.reply_to(message, 'Не правильное использование команды. Используйте: /mute [время] [причина]')
+                    elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: not enough rights to restrict/unrestrict chat member" in str(e):
+                        bot.reply_to(message, 'Ошибка. Для корректной работы бота выдайте ему права администратора.')
                     else:
                         bot.reply_to(message, f'Произошла ошибка. Ошибка: {e}')
             else:
@@ -186,6 +217,8 @@ def mute_user(message):
                     elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: method is available only for supergroups" in str(
                             e):
                         bot.reply_to(message, 'Данный метод может использоваться только в супергруппах!')
+                    elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: not enough rights to restrict/unrestrict chat member" in str(e):
+                        bot.reply_to(message, 'Ошибка. Для корректной работы бота выдайте ему права администратора.')
                     else:
                         bot.reply_to(message, f'Произошла ошибка. Ошибка: {e}')
         else:
@@ -217,6 +250,9 @@ def unmute_user(message):
                     bot.reply_to(message, 'Пользватель не заглушён')
                 elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: method is available for supergroup and channel chats only" in str(e):
                     bot.reply_to(message, 'Данный метод может использоваться только каналах и супергруппах!')
+                elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: not enough rights to restrict/unrestrict chat member" in str(
+                        e):
+                    bot.reply_to(message, 'Ошибка. Для корректной работы бота выдайте ему права администратора.')
                 else:
                     bot.reply_to(message, f'Произошла ошибка. Ошибка: {e}')
         else:
@@ -252,6 +288,9 @@ def kick_user(message):
                 elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: method is available for supergroup and channel chats only" in str(
                         e):
                     bot.reply_to(message, 'Данный метод может использоваться только каналах и супергруппах!')
+                elif "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: not enough rights to restrict/unrestrict chat member" in str(
+                        e):
+                    bot.reply_to(message, 'Ошибка. Для корректной работы бота выдайте ему права администратора.')
                 else:
                     bot.reply_to(message, f'Произошла ошибка. Ошибка: {e}')
         else:
