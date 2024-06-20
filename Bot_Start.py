@@ -1,5 +1,8 @@
 import telebot
 import time
+import requests
+import datetime
+import os
 
 try:
     with open('token_telegram.txt', 'r') as f:
@@ -14,6 +17,49 @@ except FileNotFoundError:
 moderators = [5025429154]
 
 print(f'Telegram bot with token {bot_token} started')
+
+@bot.message_handler(commands=['weather'])
+def weather(message):
+    try:
+        with open('weather_api.txt', 'r') as f:
+            global API_Weather
+            API_Weather = f.read().strip()
+    except FileNotFoundError:
+        API_Weather = input("Введите ваш API ключ для метеорологического сервиса: ")
+        with open('weather_api.txt', 'w') as f:
+            f.write(API_Weather)
+
+    chat_id = message.chat.id
+    city = message.text.split()[1]
+    url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_Weather}&units=metric'
+    response = requests.get(url)
+    weather_data = response.json()
+    time = datetime.datetime.now().replace(microsecond=0)
+    try:
+        filtered_data = {
+            "Temp_min": weather_data['main']['temp_min'],
+            "Temp_max": weather_data['main']['temp_max'],
+            "Temp": weather_data['main']['temp'],
+            "Feels_like": weather_data['main']['feels_like'],
+            "Country": weather_data['sys']['country'],
+            "Wind_speed": weather_data['wind']['speed'],
+            "Humidity": weather_data['main']['humidity'],
+            "City_id": weather_data['id']
+        }
+    except KeyError:
+        bot.reply_to(message, '*Произошла ошибка!*')
+    if response.status_code == 200:
+        try:
+            url_png = f"https://tile.openweathermap.org/map/temp_new/0/0/0.png?appid={API_Weather}"
+            message_text = f"**Погода в {city}**\n\nГород: {city}, Страна: {filtered_data['Country']}\nСредняя температура: {filtered_data['Temp']}°C \nМинимальная температура: {filtered_data['Temp_min']}°C \nМаксимальная температура: {filtered_data['Temp_max']}°C \nТемпература по ощущениям: {filtered_data['Feels_like']}°C \nСкорость ветра: {filtered_data['Wind_speed']}М/С \nВлажность: {filtered_data['Humidity']}% \nЗапрос выполнен: {time} \nЗапросил: {message.from_user.username} \nИсточник: https://openweathermap.org/city/{filtered_data['City_id']}"
+            bot.send_photo(chat_id, photo=url_png)
+            bot.reply_to(message, message_text)
+        except requests.exceptions.HTTPError:
+            bot.reply_to(message, '*Ошибка получения данных*')
+
+        except requests.exceptions.RequestException:
+            bot.reply_to(message, '*Ошибка получения данных*')
+
 @bot.message_handler(commands=['ban'])
 def ban_user(message):
     chat_id = message.chat.id
