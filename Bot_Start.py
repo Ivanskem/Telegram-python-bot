@@ -15,8 +15,53 @@ except FileNotFoundError:
         f.write(bot_token)
         bot = telebot.TeleBot(bot_token)
 moderators = [5025429154]
+Forbidden_words = ['даун', 'пидор', 'шлюха', 'гей', 'еблан', 'пидорас', 'хуйня', 'хуйни', 'шлюхи', 'пидрила', 'пидорасина', 'блять', 'блядь', 'блядина', 'ебланище', 'сука', 'негр', 'уёбище', 'шмара', 'хуесос', 'пиздализ', 'пизда', 'жопа', 'член', 'ссанина', 'лох', 'Пидор', 'ебанат', 'Ебанат']
 
 print(f'Telegram bot with token {bot_token} started')
+
+# @bot.message_handler(func=lambda message: True)
+# def Check_message(message):
+#     text = message.text.lower()
+#     chat_id = message.chat.id
+#     for word in Forbidden_words:
+#         if word in text:
+#             try:
+#                 bot.reply_to(message, f"{message.from_user.first_name}, пожалуйста, избегайте использования запрещенных слов.")
+#                 print(text)
+#                 bot.delete_message(message.chat.id, message.message_id)
+#             except Exception as e:
+#                 if "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: message to be replied not found" in str(e):
+#                     bot.send_message(chat_id, "Сообщение не найдено, попробуйте снова.")
+@bot.message_handler(commands=['chatinfo'])
+def chat_info(message):
+    if message.from_user.id in moderators:
+        chat_id = message.chat.id
+        chat_name = message.chat.title
+        user_id = message.from_user.id
+        user_username = message.from_user.username
+        member_count = bot.get_chat_member_count(chat_id)
+        try:
+            admin_count = len(bot.get_chat_administrators(chat_id))
+        except Exception as e:
+            if "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: there are no administrators in the private chat" in str(e):
+                admin_count = 0
+        if message.chat.type in ['group', 'supergroup', 'channel']:
+            try:
+                bot.send_message(chat_id, f'Наименование: {chat_name} \nId чата: {chat_id} \nТип: {message.chat.type} \nКоличество участников: {member_count} \nКоличество администраторов: {admin_count} \nВызвал: {user_username} ({user_id})')
+            except Exception as e:
+                if "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: TOPIC_CLOSED" in str(e):
+                    bot.reply_to(message, "Недостаточно прав для сбора информации!")
+        elif message.chat.type == 'private':
+            try:
+                chat_name = f"@{message.from_user.username}"
+                bot.send_message(chat_id, f'Наименование: {chat_name} \nId чата: {chat_id} \nТип: {message.chat.type} \nКоличество участников: {member_count} \nКоличество администраторов: {admin_count} \nВызвал: {user_username} ({user_id})')
+            except Exception as e:
+                if "A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: TOPIC_CLOSED" in str(e):
+                    bot.reply_to(message, "Недостаточно прав для сбора информации!")
+        else:
+            bot.send_message(chat_id, f"Can't get chat type.")
+    else:
+        bot.reply_to(message, 'У вас недостаточно прав для использования этой команды.')
 
 @bot.message_handler(commands=['info'])
 def info(message):
