@@ -14,7 +14,7 @@ except FileNotFoundError:
     with open('token_telegram.txt', 'w') as f:
         f.write(bot_token)
         bot = telebot.TeleBot(bot_token)
-moderators = [5025429154]
+moderators = 123456789#Добавьте айди модераторов
 Forbidden_words = ['даун', 'пидор', 'шлюха', 'гей', 'еблан', 'пидорас', 'хуйня', 'хуйни', 'шлюхи', 'пидрила', 'пидорасина', 'блять', 'блядь', 'блядина', 'ебланище', 'сука', 'негр', 'уёбище', 'шмара', 'хуесос', 'пиздализ', 'пизда', 'жопа', 'член', 'ссанина', 'лох', 'Пидор', 'ебанат', 'Ебанат']
 
 print(f'Telegram bot with token {bot_token} started')
